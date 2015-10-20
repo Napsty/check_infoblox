@@ -32,6 +32,7 @@ Options:
 -a Additional arguments for certain checks
 -w Warning Threshold (optional)
 -c Critical Threshold (optional)
+-i Ignore Unknown Status (for 'replication' and 'dnsstat' checks)
 -h This help text
 
 Check Types:
@@ -57,7 +58,7 @@ exit ${STATE_UNKNOWN}
 if [[ "$1" = "--help" ]] || [[ ${#} -eq 0 ]]; then help; fi
 
 # Get Opts
-while getopts "H:V:C:t:a:w:c:h" Input;
+while getopts "H:V:C:t:a:w:c:ih" Input;
 do
   case ${Input} in
     H) host=${OPTARG};;
@@ -67,6 +68,7 @@ do
     a) addarg=${OPTARG};;
     w) warning=${OPTARG};;
     c) critical=${OPTARG};;
+    i) ignoreunknown=true;;
     h) help;;
     *) echo "Wrong option given. Use -h to check out help."; exit ${STATE_UNKNOWN};;
 
@@ -234,7 +236,9 @@ dnsstat) # Get DNS statistics for a domain
   systemsn=$(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.6.0)
   if [[ "${gridstatus}" = "Passive" ]]; then 
     echo "DNS STATS UNKNOWN - This system (SN: ${systemsn}) is a passive grid member. DNS Stats only work on Active member."
-    exit ${STATE_UNKNOWN}
+    if [[ -n $ignoreunknown ]]; then
+      exit ${STATE_OK}
+    else exit ${STATE_UNKNOWN}
   fi
 
   domainoid=$(snmpwalk -On -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.3.1.1.1.1 | grep \"${addarg}\"$ | awk '{print $1}'|awk -F ".1.3.6.1.4.1.7779.3.1.1.3.1.1.1.1" '{print $2}')
