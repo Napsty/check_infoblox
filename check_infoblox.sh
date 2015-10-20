@@ -231,6 +231,7 @@ dnsstat) # Get DNS statistics for a domain
   
   # DNS Stats can only be retrieved if this appliance is "Active" in the grid 
   gridstatus=$(snmpwalk -v ${snmpv} -c ${snmpc} -Oqv ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.13 | sed "s/\"//g")
+  systemsn=$(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.6.0)
   if [[ "${gridstatus}" = "Passive" ]]; then 
     echo "DNS STATS UNKNOWN - This system (SN: ${systemsn}) is a passive grid member. DNS Stats only work on Active member."
     exit ${STATE_UNKNOWN}
