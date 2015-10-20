@@ -214,6 +214,9 @@ grid) # Check grid status
     if [[ "$gridstatus" != "$addarg" ]]; then
       echo "GRID STATUS WARNING - This member (SN: $systemsn) is $gridstatus but expected $addarg"
       exit ${STATE_WARNING}
+    else
+      echo "GRID STATUS OK - This member (SN: $systemsn) is $gridstatus"
+      exit ${STATE_OK}
     fi
   elif [[ -n $addarg ]]; then 
     echo "GRID STATUS UNKNOWN - Please use Active or Passive as additional arguments"
