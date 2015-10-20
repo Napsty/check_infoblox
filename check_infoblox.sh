@@ -203,7 +203,7 @@ replication) # Check the replication between Infoblox master/slave appliances
   else 
     systemsn=$(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.6.0)
     echo "REPLICATION UNKNOWN - This system (SN: ${systemsn}) is a passive grid member. Cannot verify replication. Try with HA IP address?"
-    exit ${STATE_UNKNOWN}
+    if [[ -n $ignoreunknown ]]; then exit ${STATE_OK}; else exit ${STATE_UNKNOWN}; fi
   fi
 ;;
 
@@ -236,9 +236,7 @@ dnsstat) # Get DNS statistics for a domain
   systemsn=$(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.6.0)
   if [[ "${gridstatus}" = "Passive" ]]; then 
     echo "DNS STATS UNKNOWN - This system (SN: ${systemsn}) is a passive grid member. DNS Stats only work on Active member."
-    if [[ -n $ignoreunknown ]]; then
-      exit ${STATE_OK}
-    else exit ${STATE_UNKNOWN}
+    if [[ -n $ignoreunknown ]]; then exit ${STATE_OK}; else exit ${STATE_UNKNOWN}; fi
   fi
 
   domainoid=$(snmpwalk -On -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.3.1.1.1.1 | grep \"${addarg}\"$ | awk '{print $1}'|awk -F ".1.3.6.1.4.1.7779.3.1.1.3.1.1.1.1" '{print $2}')
