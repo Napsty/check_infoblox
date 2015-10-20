@@ -257,6 +257,7 @@ dnsstat) # Get DNS statistics for a domain
   failure=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.3.1.1.1.7${domainoid}))
 
   echo "DNS STATS OK - $addarg Success: $success, Referral: $referral, NxRRset: $nxrrset, NxDomain: $nxdomain, Recursion: $recursion, Failure: $failure|${addarg}_success=$success;;;; ${addarg}_referral=$referral;;;; ${addarg}_referral ${addarg}_nxrrset=$nxrrset;;;; ${addarg}_nxdomain=$nxdomain;;;; ${addarg}_recursion=$recursion;;;; ${addarg}_failure=$failure" 
+  exit ${STATE_OK}
 ;;
 
 esac
