@@ -7,7 +7,7 @@
 # Docs:     www.claudiokuenzler.com/nagios-plugins/check_infoblox.php      #
 # History:                                                                 #
 # 20151016  Started Script programming. Check: cpu, mem                    #
-# 20151020  Added check: replication, grid, info, ip, dnsstat              #
+# 20151020  Added check: replication, grid, info, ip, dnsstat, temp        #
 ############################################################################
 # Variable Declaration
 STATE_OK=0              # define the exit code if status is OK
@@ -264,6 +264,26 @@ dnsstat) # Get DNS statistics for a domain
 
   echo "DNS STATS OK - $addarg Success: $success, Referral: $referral, NxRRset: $nxrrset, NxDomain: $nxdomain, Recursion: $recursion, Failure: $failure|${addarg}_success=$success;;;; ${addarg}_referral=$referral;;;; ${addarg}_referral ${addarg}_nxrrset=$nxrrset;;;; ${addarg}_nxdomain=$nxdomain;;;; ${addarg}_recursion=$recursion;;;; ${addarg}_failure=$failure" 
   exit ${STATE_OK}
+;;
+
+temp) # Checks the temperature of the appliance (makes only sense in physical appliance, d'uh!)
+  temp=$(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.1.0 | sed "s/\"//g" | awk -F'[^0-9]*' '$0=$2')
+
+  if [[ -n ${warning} ]] || [[ -n ${critical} ]]; then
+    if [[ ${temp} -ge ${critical} ]]; then 
+      echo "TEMP CRITICAL - Temperature is at $temp|temperature=$temp;$warning;$critical;;"
+      exit ${STATE_CRITICAL} 
+    elif [[ ${temp} -ge ${warning} ]]; then
+      echo "TEMP WARNING - Temperature is at $temp|temperature=$temp;$warning;$critical;;"
+      exit ${STATE_WARNING} 
+    else
+      echo "TEMP OK - Temperature is at $temp|temperature=$temp;$warning;$critical;;"
+      exit ${STATE_OK} 
+    fi
+  else 
+    echo "TEMP OK - Temperature is at $temp|temperature=$temp;$warning;$critical;;"
+    exit ${STATE_OK} 
+  fi
 ;;
 
 esac
