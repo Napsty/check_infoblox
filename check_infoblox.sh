@@ -7,7 +7,7 @@
 # Docs:     www.claudiokuenzler.com/nagios-plugins/check_infoblox.php      #
 # History:                                                                 #
 # 20151016  Started Script programming. Check: cpu, mem                    #
-# 20151020  Added check: replication, grid, info, ip                       #
+# 20151020  Added check: replication, grid, info, ip, dnsstat              #
 ############################################################################
 # Variable Declaration
 STATE_OK=0              # define the exit code if status is OK
@@ -42,6 +42,7 @@ replication -> Check if replication between Infoblox appliances is working
 grid -> Check if appliance is Active or Passive in grid (additional argument possible)
 info -> Display general information about this appliance
 ip -> Display configured ip addresses of this appliance (additional argument possible to check for a certain address)
+dnsstat -> Display DNS statistics for domain (use in combination with -a domain)
 
 Additional Arguments:
 ------------
@@ -219,11 +220,43 @@ grid) # Check grid status
     echo "GRID STATUS OK - This member (SN: $systemsn) is $gridstatus"
     exit ${STATE_OK}
   fi
+;;
 
-
-    
-
+dnsstat) # Get DNS statistics for a domain
+  # Need domain name as additional argument
+  if [[ -z $addarg ]]; then 
+    echo "No domain name given. Please use '-a domain' in combination with dnsstat check." 
+    exit ${STATE_UNKNOWN}
+  fi
   
+  # DNS Stats can only be retrieved if this appliance is "Active" in the grid 
+  gridstatus=$(snmpwalk -v ${snmpv} -c ${snmpc} -Oqv ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.13 | sed "s/\"//g")
+  if [[ "${gridstatus}" = "Passive" ]]; then 
+    echo "DNS STATS UNKNOWN - This system (SN: ${systemsn}) is a passive grid member. DNS Stats only work on Active member."
+    exit ${STATE_UNKNOWN}
+  fi
+
+  domainoid=$(snmpwalk -On -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.3.1.1.1.1 | grep \"${addarg}\"$ | awk '{print $1}'|awk -F ".1.3.6.1.4.1.7779.3.1.1.3.1.1.1.1" '{print $2}')
+
+  if [[ -z $domainoid ]]; then 
+    echo "DNS STATS WARNING - Could not find domain $addarg"
+    exit ${STATE_WARNING}
+  fi
+
+  # Number of Successful responses since DNS process started
+  success=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.3.1.1.1.2${domainoid}))
+  # Number of DNS referrals since DNS process started
+  referral=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.3.1.1.1.3${domainoid}))
+  # Number of DNS query received for non-existent record
+  nxrrset=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.3.1.1.1.4${domainoid}))
+  # Number of DNS query received for non-existent domain
+  nxdomain=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.3.1.1.1.5${domainoid}))
+  #Number of Queries received using recursion since DNS process started
+  recursion=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.3.1.1.1.6${domainoid}))
+  # Number of Failed queries since DNS process started
+  failure=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.3.1.1.1.7${domainoid}))
+
+  echo "DNS STATS OK - $addarg Success: $success, Referral: $referral, NxRRset: $nxrrset, NxDomain: $nxdomain, Recursion: $recursion, Failure: $failure|${addarg}_success=$success;;;; ${addarg}_referral=$referral;;;; ${addarg}_referral ${addarg}_nxrrset=$nxrrset;;;; ${addarg}_nxdomain=$nxdomain;;;; ${addarg}_recursion=$recursion;;;; ${addarg}_failure=$failure" 
 ;;
 
 esac
