@@ -135,17 +135,17 @@ cpu) # Checks the cpu utilization in percentage
   if [[ -n ${warning} ]] || [[ -n ${critical} ]]
   then # Check CPU utilization with thresholds
     if [[ ${usage} -ge ${critical} ]]; then 
-      echo "CPU CRITICAL - Usage at ${usage}|ibloxcpu=${usage}%;${warning};${critical};;"
+      echo "CPU CRITICAL - Usage at ${usage}%|ibloxcpu=${usage}%;${warning};${critical};;"
       exit ${STATE_CRITICAL}
     elif [[ ${usage} -ge ${warning} ]]; then
-      echo "CPU WARNING - Usage at ${usage}|ibloxcpu=${usage}%;${warning};${critical};;"
+      echo "CPU WARNING - Usage at ${usage}%|ibloxcpu=${usage}%;${warning};${critical};;"
       exit ${STATE_WARNING}
     else 
-      echo "CPU OK - Usage at ${usage}|ibloxcpu=${usage}%;${warning};${critical};;"
+      echo "CPU OK - Usage at ${usage}%|ibloxcpu=${usage}%;${warning};${critical};;"
       exit ${STATE_OK}
     fi
   else # No thresholds, just show current utilization
-    echo "CPU OK - Usage at ${usage}|ibloxcpu=${usage}%;${warning};${critical};;"
+    echo "CPU OK - Usage at ${usage}%|ibloxcpu=${usage}%;${warning};${critical};;"
     exit ${STATE_OK}
   fi
 ;;
@@ -156,17 +156,17 @@ mem) # Checks the memory utilization in percentage
   if [[ -n ${warning} ]] || [[ -n ${critical} ]]
   then # Check memory utilization with thresholds
     if [[ ${usage} -ge ${critical} ]]; then
-      echo "MEMORY CRITICAL - Usage at ${usage}|ibloxmem=${usage}%;${warning};${critical};;"
+      echo "MEMORY CRITICAL - Usage at ${usage}%|ibloxmem=${usage}%;${warning};${critical};;"
       exit ${STATE_CRITICAL}
     elif [[ ${usage} -ge ${warning} ]]; then
-      echo "MEMORY WARNING - Usage at ${usage}|ibloxmem=${usage}%;${warning};${critical};;"
+      echo "MEMORY WARNING - Usage at ${usage}%|ibloxmem=${usage}%;${warning};${critical};;"
       exit ${STATE_WARNING}
     else
-      echo "MEMORY OK - Usage at ${usage}|ibloxmem=${usage}%;${warning};${critical};;"
+      echo "MEMORY OK - Usage at ${usage}%|ibloxmem=${usage}%;${warning};${critical};;"
       exit ${STATE_OK}
     fi
   else # No thresholds, just show current utilization
-    echo "MEMORY OK - Usage at ${usage}|ibloxmem=${usage}%;${warning};${critical};;"
+    echo "MEMORY OK - Usage at ${usage}%|ibloxmem=${usage}%;${warning};${critical};;"
     exit ${STATE_OK}
   fi
 ;;
