@@ -22,7 +22,7 @@ help() {
 echo -ne "
 check_infoblox (c) 2015-$(date +%Y) Claudio Kuenzler (published under GPLv2 licence)
 
-Usage: ./check_infoblox -H host -v 2c -C community -t type [-d domain] [-w warning] [-c critical]
+Usage: ./check_infoblox -H host -v 2c -C community -t type [-a argument] [-w warning] [-c critical]
 
 Options:
 ------------
