@@ -8,6 +8,7 @@
 # History:                                                                 #
 # 20151016  Started Script programming. Check: cpu, mem                    #
 # 20151020  Added check: replication, grid, info, ip, dnsstat, temp        #
+# 20151021  (Back to the Future Day!) Public release                       #
 ############################################################################
 # Variable Declaration
 STATE_OK=0              # define the exit code if status is OK
