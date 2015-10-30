@@ -9,6 +9,7 @@
 # 20151016  Started Script programming. Check: cpu, mem                    #
 # 20151020  Added check: replication, grid, info, ip, dnsstat, temp        #
 # 20151021  (Back to the Future Day!) Public release                       #
+# 20151030  Added check dhcpstat (by Chris Lewis)                          #
 ############################################################################
 # Variable Declaration
 STATE_OK=0              # define the exit code if status is OK
@@ -45,6 +46,7 @@ grid -> Check if appliance is Active or Passive in grid (additional argument pos
 info -> Display general information about this appliance
 ip -> Display configured ip addresses of this appliance (additional argument possible to check for a certain address)
 dnsstat -> Display DNS statistics for domain (use in combination with -a domain)
+dhcpstat -> Display DHCP statistics 
 
 Additional Arguments:
 ------------
@@ -285,6 +287,37 @@ temp) # Checks the temperature of the appliance (makes only sense in physical ap
     echo "TEMP OK - Temperature is at $temp|temperature=$temp;$warning;$critical;;"
     exit ${STATE_OK} 
   fi
+;;
+
+dhcpstat) # Get DHCP statistics for a domain
+  # DHCP Stats can only be retrieved if this appliance is "Active" in the grid
+  gridstatus=$(snmpwalk -v ${snmpv} -c ${snmpc} -Oqv ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.13 | sed "s/\"//g")
+  systemsn=$(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.6.0)
+  if [[ "${gridstatus}" = "Passive" ]]; then
+    echo "DHCP STATS UNKNOWN - This system (SN: ${systemsn}) is a passive grid member. DHCP Stats only work on Active member."
+    if [[ -n $ignoreunknown ]]; then exit ${STATE_OK}; else exit ${STATE_UNKNOWN}; fi
+  fi
+  # ibDhcpTotalNoOfDiscovers
+  discovers=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.4.1.3.1.0))
+  # ibDhcpTotalNoOfRequests
+  requests=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.4.1.3.2.0))
+  #ibDhcpTotalNoOfReleases
+  releases=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.4.1.3.3.0))
+  # ibDhcpTotalNoOfOffers
+  offers=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.4.1.3.4.0))
+  #ibDhcpTotalNoOfAcks
+  acks=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.4.1.3.5.0))
+  #ibDhcpTotalNoOfNacks
+  nacks=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.4.1.3.6.0))
+  # ibDhcpTotalNoOfDeclines
+  declines=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.4.1.3.7.0))
+  # ibDhcpTotalNoOfInforms
+  informs=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.4.1.3.8.0))
+  # ibDhcpTotalNoOfOthers
+  others=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.4.1.3.9.0))
+
+  echo "DHCP STATS OK - $addarg Discovers: $discovers, Requests: $requests, Releases: $releases, Offers: $offers, Acks: $acks, Nacks: $nacks, Declines: $declines, Informs: $informs, Other: $other|discovers=$discovers; requests=$requests; releases=$releases; offers=$offers; acks=$acks nacks=$nacks; declines=$declines; informs=$informs others=$others"
+  exit ${STATE_OK}
 ;;
 
 esac
