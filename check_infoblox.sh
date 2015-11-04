@@ -10,6 +10,7 @@
 # 20151020  Added check: replication, grid, info, ip, dnsstat, temp        #
 # 20151021  (Back to the Future Day!) Public release                       #
 # 20151030  Added check dhcpstat (by Chris Lewis)                          #
+# 20151104  Bugfix in perfdata of dnsstat check                            #
 ############################################################################
 # Variable Declaration
 STATE_OK=0              # define the exit code if status is OK
@@ -265,7 +266,7 @@ dnsstat) # Get DNS statistics for a domain
   # Number of Failed queries since DNS process started
   failure=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.3.1.1.1.7${domainoid}))
 
-  echo "DNS STATS OK - $addarg Success: $success, Referral: $referral, NxRRset: $nxrrset, NxDomain: $nxdomain, Recursion: $recursion, Failure: $failure|${addarg}_success=$success;;;; ${addarg}_referral=$referral;;;; ${addarg}_referral ${addarg}_nxrrset=$nxrrset;;;; ${addarg}_nxdomain=$nxdomain;;;; ${addarg}_recursion=$recursion;;;; ${addarg}_failure=$failure" 
+  echo "DNS STATS OK - $addarg Success: $success, Referral: $referral, NxRRset: $nxrrset, NxDomain: $nxdomain, Recursion: $recursion, Failure: $failure|${addarg}_success=$success;;;; ${addarg}_referral=$referral;;;; ${addarg}_nxrrset=$nxrrset;;;; ${addarg}_nxdomain=$nxdomain;;;; ${addarg}_recursion=$recursion;;;; ${addarg}_failure=$failure" 
   exit ${STATE_OK}
 ;;
 
