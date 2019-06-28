@@ -42,6 +42,7 @@ Check Types:
 ------------
 cpu -> Check CPU utilization (thresholds possible)
 mem -> Check Memory utilization (thresholds possible)
+swap -> Check Swap utilization (thresholds possible)
 replication -> Check if replication between Infoblox appliances is working
 grid -> Check if appliance is Active or Passive in grid (additional argument possible)
 info -> Display general information about this appliance
@@ -173,6 +174,27 @@ mem) # Checks the memory utilization in percentage
     fi
   else # No thresholds, just show current utilization
     echo "MEMORY OK - Usage at ${usage}%|ibloxmem=${usage}%;${warning};${critical};;"
+    exit ${STATE_OK}
+  fi
+;;
+
+swap) # Checks the memory utilization in percentage
+  usage=$(snmpwalk -v ${snmpv} -c ${snmpc} -Oqv ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.8.3)
+
+  if [[ -n ${warning} ]] || [[ -n ${critical} ]]
+  then # Check swap utilization with thresholds
+    if [[ ${usage} -ge ${critical} ]]; then
+      echo "SWAP CRITICAL - Usage at ${usage}%|ibloxswap=${usage}%;${warning};${critical};;"
+      exit ${STATE_CRITICAL}
+    elif [[ ${usage} -ge ${warning} ]]; then
+      echo "SWAP WARNING - Usage at ${usage}%|ibloxswap=${usage}%;${warning};${critical};;"
+      exit ${STATE_WARNING}
+    else
+      echo "SWAP OK - Usage at ${usage}%|ibloxswap=${usage}%;${warning};${critical};;"
+      exit ${STATE_OK}
+    fi
+  else # No thresholds, just show current utilization
+    echo "SWAP OK - Usage at ${usage}%|ibloxswap=${usage}%;${warning};${critical};;"
     exit ${STATE_OK}
   fi
 ;;
