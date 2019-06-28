@@ -31,7 +31,7 @@ Options:
 -H Hostname
 -V SNMP Version to use (currently only 2c is supported)
 -C SNMP Community (default: public)
--t Type to check 
+-t Type to check
 -a Additional arguments for certain checks
 -w Warning Threshold (optional)
 -c Critical Threshold (optional)
@@ -47,7 +47,7 @@ grid -> Check if appliance is Active or Passive in grid (additional argument pos
 info -> Display general information about this appliance
 ip -> Display configured ip addresses of this appliance (additional argument possible to check for a certain address)
 dnsstat -> Display DNS statistics for domain (use in combination with -a domain)
-dhcpstat -> Display DHCP statistics 
+dhcpstat -> Display DHCP statistics
 
 Additional Arguments:
 ------------
@@ -55,7 +55,7 @@ example.com (domain name) for dnsstat check
 (Active|Passive) for grid check
 ip.add.re.ss for ip check
 "
-exit ${STATE_UNKNOWN} 
+exit ${STATE_UNKNOWN}
 }
 ############################################################################
 # Was there some input?
@@ -82,11 +82,11 @@ done
 # Pre-Checks before doing any actual work
 
 # The following commands must exist
-for cmd in snmpwalk awk grep egrep sed; do 
-  if ! `which ${cmd} 1>/dev/null`; then 
+for cmd in snmpwalk awk grep egrep sed; do
+  if ! `which ${cmd} 1>/dev/null`; then
     echo "UNKNOWN - ${cmd} does not exist. Please verify if command exists in PATH"
     exit ${STATE_UNKNOWN}
-  fi 
+  fi
 done
 
 # Check for required opts
@@ -121,14 +121,14 @@ info) # Displays information about this Infoblox appliance
 
 ip) # Display configured ip addresses of this appliance
   ipaddrs=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.2.1.4.20.1.1))
-  if [[ -n $addarg ]]; then 
+  if [[ -n $addarg ]]; then
     if [[ -z $(echo ${ipaddrs[*]} | grep $addarg) ]]; then
       echo "IP WARNING: Expected address $addarg not found. IP addresses configured: ${ipaddrs[*]}" 
       exit ${STATE_WARNING}
-    else 
+    else
       echo "IP OK: Addresses: ${ipaddrs[*]}"
-      exit ${STATE_OK} 
-    fi 
+      exit ${STATE_OK}
+    fi
   else
     echo "IP OK - Addresses: ${ipaddrs[*]}"
   fi
@@ -140,13 +140,13 @@ cpu) # Checks the cpu utilization in percentage
 
   if [[ -n ${warning} ]] || [[ -n ${critical} ]]
   then # Check CPU utilization with thresholds
-    if [[ ${usage} -ge ${critical} ]]; then 
+    if [[ ${usage} -ge ${critical} ]]; then
       echo "CPU CRITICAL - Usage at ${usage}%|ibloxcpu=${usage}%;${warning};${critical};;"
       exit ${STATE_CRITICAL}
     elif [[ ${usage} -ge ${warning} ]]; then
       echo "CPU WARNING - Usage at ${usage}%|ibloxcpu=${usage}%;${warning};${critical};;"
       exit ${STATE_WARNING}
-    else 
+    else
       echo "CPU OK - Usage at ${usage}%|ibloxcpu=${usage}%;${warning};${critical};;"
       exit ${STATE_OK}
     fi
@@ -178,23 +178,23 @@ mem) # Checks the memory utilization in percentage
 ;;
 
 replication) # Check the replication between Infoblox master/slave appliances
-  # Replication status can only be checked if this host is "Active" in the grid 
+  # Replication status can only be checked if this host is "Active" in the grid
   gridstatus=$(snmpwalk -v ${snmpv} -c ${snmpc} -Oqv ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.13 | sed "s/\"//g")
   if [[ "${gridstatus}" = "Active" ]]
   then
     replstatus=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.2.1.2 | sed "s/\"//g"))
     # Determine which array index is offline
     r=0; for status in ${replstatus[*]}; do
-      if [[ "${status}" = "Offline" ]]; then errorindex[${r}]=${r}; fi 
+      if [[ "${status}" = "Offline" ]]; then errorindex[${r}]=${r}; fi
       let r++
     done
-    if [[ ${#errorindex[*]} -gt 0 ]] 
-    then 
+    if [[ ${#errorindex[*]} -gt 0 ]]
+    then
       SAVEIFS=$IFS; IFS=$(echo -en "\n\b") # <- Do not use whitespace as split
       replmembers=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.2.1.1))
       repllast=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.2.1.4))
       IFS=$SAVEIFS
-      for f in ${errorindex[*]}; do 
+      for f in ${errorindex[*]}; do
         failedmembers[${f}]=$(echo ${replmembers[$f]})
         failedtime[${f}]=$(echo ${repllast[$f]})
       done
@@ -204,7 +204,7 @@ replication) # Check the replication between Infoblox master/slave appliances
       echo "REPLICATION OK"
       exit ${STATE_OK}
     fi
-  else 
+  else
     systemsn=$(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.6.0)
     echo "REPLICATION UNKNOWN - This system (SN: ${systemsn}) is a passive grid member. Cannot verify replication. Try with HA IP address?"
     if [[ -n $ignoreunknown ]]; then exit ${STATE_OK}; else exit ${STATE_UNKNOWN}; fi
@@ -222,10 +222,10 @@ grid) # Check grid status
       echo "GRID STATUS OK - This member (SN: $systemsn) is $gridstatus"
       exit ${STATE_OK}
     fi
-  elif [[ -n $addarg ]]; then 
+  elif [[ -n $addarg ]]; then
     echo "GRID STATUS UNKNOWN - Please use Active or Passive as additional arguments"
     exit ${STATE_UNKNOWN}
-  else 
+  else
     echo "GRID STATUS OK - This member (SN: $systemsn) is $gridstatus"
     exit ${STATE_OK}
   fi
@@ -233,12 +233,12 @@ grid) # Check grid status
 
 dnsstat) # Get DNS statistics for a domain
   # Need domain name as additional argument
-  if [[ -z $addarg ]]; then 
-    echo "No domain name given. Please use '-a domain' in combination with dnsstat check." 
+  if [[ -z $addarg ]]; then
+    echo "No domain name given. Please use '-a domain' in combination with dnsstat check."
     exit ${STATE_UNKNOWN}
   fi
-  
-  # DNS Stats can only be retrieved if this appliance is "Active" in the grid 
+
+  # DNS Stats can only be retrieved if this appliance is "Active" in the grid
   gridstatus=$(snmpwalk -v ${snmpv} -c ${snmpc} -Oqv ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.13 | sed "s/\"//g")
   systemsn=$(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.6.0)
   if [[ "${gridstatus}" = "Passive" ]]; then 
@@ -248,7 +248,7 @@ dnsstat) # Get DNS statistics for a domain
 
   domainoid=$(snmpwalk -On -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.3.1.1.1.1 | grep \"${addarg}\"$ | awk '{print $1}'|awk -F ".1.3.6.1.4.1.7779.3.1.1.3.1.1.1.1" '{print $2}')
 
-  if [[ -z $domainoid ]]; then 
+  if [[ -z $domainoid ]]; then
     echo "DNS STATS WARNING - Could not find domain $addarg"
     exit ${STATE_WARNING}
   fi
@@ -274,19 +274,19 @@ temp) # Checks the temperature of the appliance (makes only sense in physical ap
   temp=$(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.1.0 | sed "s/\"//g" | awk -F'[^0-9]*' '$0=$2')
 
   if [[ -n ${warning} ]] || [[ -n ${critical} ]]; then
-    if [[ ${temp} -ge ${critical} ]]; then 
+    if [[ ${temp} -ge ${critical} ]]; then
       echo "TEMP CRITICAL - Temperature is at $temp|temperature=$temp;$warning;$critical;;"
-      exit ${STATE_CRITICAL} 
+      exit ${STATE_CRITICAL}
     elif [[ ${temp} -ge ${warning} ]]; then
       echo "TEMP WARNING - Temperature is at $temp|temperature=$temp;$warning;$critical;;"
-      exit ${STATE_WARNING} 
+      exit ${STATE_WARNING}
     else
       echo "TEMP OK - Temperature is at $temp|temperature=$temp;$warning;$critical;;"
-      exit ${STATE_OK} 
+      exit ${STATE_OK}
     fi
-  else 
+  else
     echo "TEMP OK - Temperature is at $temp|temperature=$temp;$warning;$critical;;"
-    exit ${STATE_OK} 
+    exit ${STATE_OK}
   fi
 ;;
 
