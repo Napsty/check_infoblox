@@ -11,6 +11,7 @@
 # 20151021  (Back to the Future Day!) Public release                       #
 # 20151030  Added check dhcpstat (by Chris Lewis)                          #
 # 20151104  Bugfix in perfdata of dnsstat check                            #
+# 20190628  Added swap and services check (by Remi Verchere)               #
 ############################################################################
 # Variable Declaration
 STATE_OK=0              # define the exit code if status is OK
@@ -49,12 +50,14 @@ info -> Display general information about this appliance
 ip -> Display configured ip addresses of this appliance (additional argument possible to check for a certain address)
 dnsstat -> Display DNS statistics for domain (use in combination with -a domain)
 dhcpstat -> Display DHCP statistics
+service -> Check if service is running
 
 Additional Arguments:
 ------------
 example.com (domain name) for dnsstat check
 (Active|Passive) for grid check
 ip.add.re.ss for ip check
+service name for service check (dns, ntp)
 "
 exit ${STATE_UNKNOWN}
 }
@@ -341,6 +344,38 @@ dhcpstat) # Get DHCP statistics for a domain
 
   echo "DHCP STATS OK - $addarg Discovers: $discovers, Requests: $requests, Releases: $releases, Offers: $offers, Acks: $acks, Nacks: $nacks, Declines: $declines, Informs: $informs, Other: $other|discovers=$discovers; requests=$requests; releases=$releases; offers=$offers; acks=$acks nacks=$nacks; declines=$declines; informs=$informs others=$others"
   exit ${STATE_OK}
+;;
+
+service) # Check if service is running
+  # Need service name as additional argument
+  if [[ -z $addarg ]]; then
+    echo "No service name given. Please use '-a service' in combination with service check."
+    exit ${STATE_UNKNOWN}
+  fi
+
+  case ${addarg} in
+    dhcp) serviceid=1;;
+    dns) serviceid=2;;
+    ntp) serviceid=3;;
+    tftp) serviceid=4;;
+    http-file-dist) serviceid=5;;
+    ftp) serviceid=6;;
+    bloxtools-move) serviceid=7;;
+    bloxtools) serviceid=8;;
+    *) echo "Service name ${addarg} is unknown"
+       exit ${STATE_UNKNOWN};;
+  esac
+
+  servicestatus=$(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.9.1.2.${serviceid})
+  servicemsg=$(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.9.1.3.${serviceid})
+
+  echo "${servicemsg}"
+  case ${servicestatus} in
+    1) exit ${STATE_OK};;
+    2) exit ${STATE_WARNING};;
+    5) exit ${STATE_UNKNOWN};;
+    *) exit ${STATE_CRITICAL};;
+  esac
 ;;
 
 esac
