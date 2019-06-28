@@ -37,6 +37,7 @@ Options:
 -w Warning Threshold (optional)
 -c Critical Threshold (optional)
 -i Ignore Unknown Status (for 'replication' and 'dnsstat' checks)
+-n Negate result (for 'view' checks)
 -h This help text
 
 Check Types:
@@ -51,6 +52,7 @@ ip -> Display configured ip addresses of this appliance (additional argument pos
 dnsstat -> Display DNS statistics for domain (use in combination with -a domain)
 dhcpstat -> Display DHCP statistics
 service -> Check if service is running
+dnsview -> Check if dns view is active. (This needs IB-DNSONE-MIB to be present on system)
 
 Additional Arguments:
 ------------
@@ -58,6 +60,7 @@ example.com (domain name) for dnsstat check
 (Active|Passive) for grid check
 ip.add.re.ss for ip check
 service name for service check (dns, ntp)
+view name for dnsview check
 "
 exit ${STATE_UNKNOWN}
 }
@@ -66,7 +69,7 @@ exit ${STATE_UNKNOWN}
 if [[ "$1" = "--help" ]] || [[ ${#} -eq 0 ]]; then help; fi
 
 # Get Opts
-while getopts "H:V:C:t:a:w:c:ih" Input;
+while getopts "H:V:C:t:a:w:c:inh" Input;
 do
   case ${Input} in
     H) host=${OPTARG};;
@@ -77,6 +80,7 @@ do
     w) warning=${OPTARG};;
     c) critical=${OPTARG};;
     i) ignoreunknown=true;;
+    n) negate=true;;
     h) help;;
     *) echo "Wrong option given. Use -h to check out help."; exit ${STATE_UNKNOWN};;
 
@@ -376,6 +380,36 @@ service) # Check if service is running
     5) exit ${STATE_UNKNOWN};;
     *) exit ${STATE_CRITICAL};;
   esac
+;;
+
+dnsview) # Check if DNS View exists
+# This is a tricky part, we check if there is any info for the reverse "view"."0.0.127.in-addr.arpa"
+# If OID exists, we consider View is OK.
+# -n can be set to check if a View is NOT defined on the server
+
+  # Need view name as additional argument
+  if [[ -z $addarg ]]; then
+    echo "No view name given. Please use '-a \"view\"' in combination with service check."
+    exit ${STATE_UNKNOWN}
+  fi
+
+  if [ ! -f "/usr/share/snmp/mibs/IB-DNSONE-MIB.txt" ]; then
+    echo "You need IB-DNSONE-MIB.txt MIB!"
+    exit ${STATE_UNKNOWN}
+  fi
+  oid="IB-DNSONE-MIB::ibBindZonePlusViewName.\"${addarg}\".\"0.0.127.in-addr.arpa\""
+  view=$(IFS=$'\n'; snmpget -m /usr/share/snmp/mibs/IB-DNSONE-MIB.txt -Oqv -v ${snmpv} -c ${snmpc} ${host} ${oid})
+
+  if [[ "${view}" = "0.0.127.in-addr.arpa" ]]; then
+    echo "DNS View ${addarg} exists"
+    if [[ -z $negate ]]; then exit ${STATE_OK}; else exit ${STATE_CRITICAL}; fi
+  elif [[ "${view}" = "No Such Instance currently exists at this OID" ]]; then
+    echo "DNS View ${addarg} does not exists"
+    if [[ -z $negate ]]; then exit ${STATE_CRITICAL}; else exit ${STATE_OK}; fi
+  else
+    echo "DNS View ${addarg} gives an unknown result: ${view}"
+    exit ${STATE_UNKNOWN}
+  fi
 ;;
 
 esac
