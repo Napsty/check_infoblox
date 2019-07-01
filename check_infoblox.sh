@@ -46,7 +46,7 @@ cpu -> Check CPU utilization (thresholds possible)
 mem -> Check Memory utilization (thresholds possible)
 swap -> Check Swap utilization (thresholds possible)
 replication -> Check if replication between Infoblox appliances is working
-grid -> Check if appliance is Active or Passive in grid (additional argument possible)
+ha -> Check if appliance is Active or Passive in H-A  (additional argument possible)
 info -> Display general information about this appliance
 ip -> Display configured ip addresses of this appliance (additional argument possible to check for a certain address)
 dnsstat -> Display DNS statistics for domain (use in combination with -a domain)
@@ -57,7 +57,7 @@ dnsview -> Check if dns view is active. (This needs IB-DNSONE-MIB to be present 
 Additional Arguments:
 ------------
 example.com (domain name) for dnsstat check
-(Active|Passive) for grid check
+(Active|Passive) for ha check
 ip.add.re.ss for ip check
 service name for service check (dns, ntp)
 view name for dnsview check
@@ -207,9 +207,9 @@ swap) # Checks the memory utilization in percentage
 ;;
 
 replication) # Check the replication between Infoblox master/slave appliances
-  # Replication status can only be checked if this host is "Active" in the grid
-  gridstatus=$(snmpwalk -v ${snmpv} -c ${snmpc} -Oqv ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.13 | sed "s/\"//g")
-  if [[ "${gridstatus}" = "Active" ]]
+  # Replication status can only be checked if this host is "Active" in the ha
+  hastatus=$(snmpwalk -v ${snmpv} -c ${snmpc} -Oqv ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.13 | sed "s/\"//g")
+  if [[ "${hastatus}" = "Active" ]]
   then
     replstatus=($(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.2.1.2 | sed "s/\"//g"))
     # Determine which array index is offline
@@ -235,27 +235,27 @@ replication) # Check the replication between Infoblox master/slave appliances
     fi
   else
     systemsn=$(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.6.0)
-    echo "REPLICATION UNKNOWN - This system (SN: ${systemsn}) is a passive grid member. Cannot verify replication. Try with HA IP address?"
+    echo "REPLICATION UNKNOWN - This system (SN: ${systemsn}) is a passive h-a member. Cannot verify replication. Try with HA IP address?"
     if [[ -n $ignoreunknown ]]; then exit ${STATE_OK}; else exit ${STATE_UNKNOWN}; fi
   fi
 ;;
 
-grid) # Check grid status
-  gridstatus=$(snmpwalk -v ${snmpv} -c ${snmpc} -Oqv ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.13 | sed "s/\"//g")
+ha) # Check ha status
+  hastatus=$(snmpwalk -v ${snmpv} -c ${snmpc} -Oqv ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.13 | sed "s/\"//g")
   systemsn=$(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.6.0)
   if [[ -n $addarg ]] && ([[ "$addarg" = "Active" ]] || [[ "$addarg" = "Passive" ]]); then
-    if [[ "$gridstatus" != "$addarg" ]]; then
-      echo "GRID STATUS WARNING - This member (SN: $systemsn) is $gridstatus but expected $addarg"
+    if [[ "$hastatus" != "$addarg" ]]; then
+      echo "H-A STATUS WARNING - This member (SN: $systemsn) is $hastatus but expected $addarg"
       exit ${STATE_WARNING}
     else
-      echo "GRID STATUS OK - This member (SN: $systemsn) is $gridstatus"
+      echo "H-A STATUS OK - This member (SN: $systemsn) is $hastatus"
       exit ${STATE_OK}
     fi
   elif [[ -n $addarg ]]; then
-    echo "GRID STATUS UNKNOWN - Please use Active or Passive as additional arguments"
+    echo "H-A STATUS UNKNOWN - Please use Active or Passive as additional arguments"
     exit ${STATE_UNKNOWN}
   else
-    echo "GRID STATUS OK - This member (SN: $systemsn) is $gridstatus"
+    echo "H-A STATUS OK - This member (SN: $systemsn) is $hastatus"
     exit ${STATE_OK}
   fi
 ;;
@@ -267,11 +267,11 @@ dnsstat) # Get DNS statistics for a domain
     exit ${STATE_UNKNOWN}
   fi
 
-  # DNS Stats can only be retrieved if this appliance is "Active" in the grid
-  gridstatus=$(snmpwalk -v ${snmpv} -c ${snmpc} -Oqv ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.13 | sed "s/\"//g")
+  # DNS Stats can only be retrieved if this appliance is "Active" in the h-a
+  hastatus=$(snmpwalk -v ${snmpv} -c ${snmpc} -Oqv ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.13 | sed "s/\"//g")
   systemsn=$(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.6.0)
-  if [[ "${gridstatus}" = "Passive" ]]; then 
-    echo "DNS STATS UNKNOWN - This system (SN: ${systemsn}) is a passive grid member. DNS Stats only work on Active member."
+  if [[ "${hastatus}" = "Passive" ]]; then 
+    echo "DNS STATS UNKNOWN - This system (SN: ${systemsn}) is a passive h-a member. DNS Stats only work on Active member."
     if [[ -n $ignoreunknown ]]; then exit ${STATE_OK}; else exit ${STATE_UNKNOWN}; fi
   fi
 
@@ -320,11 +320,11 @@ temp) # Checks the temperature of the appliance (makes only sense in physical ap
 ;;
 
 dhcpstat) # Get DHCP statistics for a domain
-  # DHCP Stats can only be retrieved if this appliance is "Active" in the grid
-  gridstatus=$(snmpwalk -v ${snmpv} -c ${snmpc} -Oqv ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.13 | sed "s/\"//g")
+  # DHCP Stats can only be retrieved if this appliance is "Active" in the h-a
+  hastatus=$(snmpwalk -v ${snmpv} -c ${snmpc} -Oqv ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.13 | sed "s/\"//g")
   systemsn=$(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.6.0)
-  if [[ "${gridstatus}" = "Passive" ]]; then
-    echo "DHCP STATS UNKNOWN - This system (SN: ${systemsn}) is a passive grid member. DHCP Stats only work on Active member."
+  if [[ "${hastatus}" = "Passive" ]]; then
+    echo "DHCP STATS UNKNOWN - This system (SN: ${systemsn}) is a passive h-a member. DHCP Stats only work on Active member."
     if [[ -n $ignoreunknown ]]; then exit ${STATE_OK}; else exit ${STATE_UNKNOWN}; fi
   fi
   # ibDhcpTotalNoOfDiscovers
