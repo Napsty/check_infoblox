@@ -404,7 +404,7 @@ dnsview) # Check if DNS View exists
     echo "DNS View ${addarg} exists"
     if [[ -z $negate ]]; then exit ${STATE_OK}; else exit ${STATE_CRITICAL}; fi
   elif [[ "${view}" = "No Such Instance currently exists at this OID" ]]; then
-    echo "DNS View ${addarg} does not exists"
+    echo "DNS View ${addarg} does not exist"
     if [[ -z $negate ]]; then exit ${STATE_CRITICAL}; else exit ${STATE_OK}; fi
   else
     echo "DNS View ${addarg} gives an unknown result: ${view}"
