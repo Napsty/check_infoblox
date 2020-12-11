@@ -51,7 +51,8 @@ info -> Display general information about this appliance
 ip -> Display configured ip addresses of this appliance (additional argument possible to check for a certain address)
 dnsstat -> Display DNS statistics for domain (use in combination with -a domain)
 dhcpstat -> Display DHCP statistics
-service -> Check if service is running
+service -> Check if service is running. Service is one of the following
+  dhcp, dns, ntp, tftp, http-file-dist, ftp, bloxtools-move, bloxtools
 dnsview -> Check if dns view is active. (This needs IB-DNSONE-MIB to be present on system)
 
 Additional Arguments:
@@ -353,7 +354,7 @@ dhcpstat) # Get DHCP statistics for a domain
 service) # Check if service is running
   # Need service name as additional argument
   if [[ -z $addarg ]]; then
-    echo "No service name given. Please use '-a service' in combination with service check."
+    echo "SERVICE UNKNOWN - No service name given. Please use '-a service' in combination with service check."
     exit ${STATE_UNKNOWN}
   fi
 
@@ -366,19 +367,18 @@ service) # Check if service is running
     ftp) serviceid=6;;
     bloxtools-move) serviceid=7;;
     bloxtools) serviceid=8;;
-    *) echo "Service name ${addarg} is unknown"
+    *) echo "SERVICE UNKNOWN - Service name ${addarg} is unknown"
        exit ${STATE_UNKNOWN};;
   esac
 
   servicestatus=$(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.9.1.2.${serviceid})
   servicemsg=$(snmpwalk -Oqv -v ${snmpv} -c ${snmpc} ${host} 1.3.6.1.4.1.7779.3.1.1.2.1.9.1.3.${serviceid})
 
-  echo "${servicemsg}"
   case ${servicestatus} in
-    1) exit ${STATE_OK};;
-    2) exit ${STATE_WARNING};;
-    5) exit ${STATE_UNKNOWN};;
-    *) exit ${STATE_CRITICAL};;
+    1) echo "SERVICE OK - ${servicemsg}"; exit ${STATE_OK};;
+    2) echo "SERVICE WARNING - ${servicemsg}"; exit ${STATE_WARNING};;
+    5) echo "SERVICE UNKNOWN - ${servicemsg}"; exit ${STATE_UNKNOWN};;
+    *) echo "SERVICE CRITICAL - ${servicemsg}"; exit ${STATE_CRITICAL};;
   esac
 ;;
 
@@ -389,25 +389,35 @@ dnsview) # Check if DNS View exists
 
   # Need view name as additional argument
   if [[ -z $addarg ]]; then
-    echo "No view name given. Please use '-a \"view\"' in combination with service check."
+    echo "DNSVIEW UNKNOWN - No view name given. Please use '-a \"view\"' in combination with service check."
     exit ${STATE_UNKNOWN}
   fi
 
   if [ ! -f "/usr/share/snmp/mibs/IB-DNSONE-MIB.txt" ]; then
-    echo "You need IB-DNSONE-MIB.txt MIB!"
+    echo "DNSVIEW UNKNOWN - You need IB-DNSONE-MIB.txt MIB!"
     exit ${STATE_UNKNOWN}
   fi
   oid="IB-DNSONE-MIB::ibBindZonePlusViewName.\"${addarg}\".\"0.0.127.in-addr.arpa\""
   view=$(IFS=$'\n'; snmpget -m /usr/share/snmp/mibs/IB-DNSONE-MIB.txt -Oqv -v ${snmpv} -c ${snmpc} ${host} ${oid})
 
   if [[ "${view}" = "0.0.127.in-addr.arpa" ]]; then
-    echo "DNS View ${addarg} exists"
-    if [[ -z $negate ]]; then exit ${STATE_OK}; else exit ${STATE_CRITICAL}; fi
+    if [[ -z $negate ]]; then
+      echo "DNSVIEW OK - DNS View ${addarg} exists"
+      exit ${STATE_OK};
+    else
+      echo "DNSVIEW CRITICAL - DNS View ${addarg} exists"
+      exit ${STATE_CRITICAL};
+    fi
   elif [[ "${view}" = "No Such Instance currently exists at this OID" ]]; then
-    echo "DNS View ${addarg} does not exist"
-    if [[ -z $negate ]]; then exit ${STATE_CRITICAL}; else exit ${STATE_OK}; fi
+    if [[ -z $negate ]]; then
+      echo "DNSVIEW CRITICAL - DNS View ${addarg} does not exist"
+      exit ${STATE_CRITICAL};
+    else
+      echo "DNSVIEW OK - DNS View ${addarg} does not exist"
+      exit ${STATE_OK};
+    fi
   else
-    echo "DNS View ${addarg} gives an unknown result: ${view}"
+    echo "DNSVIEW UNKNOWN - DNS View ${addarg} gives an unknown result: ${view}"
     exit ${STATE_UNKNOWN}
   fi
 ;;
