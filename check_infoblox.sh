@@ -1,18 +1,33 @@
 #!/bin/bash 
-############################################################################
-# Script:   check_infoblox                                                 #
-# Author:   Claudio Kuenzler www.claudiokuenzler.com                       #
-# Purpose:  Monitor Infoblox Appliance                                     #
-# License:  GPLv2                                                          #
-# Docs:     www.claudiokuenzler.com/nagios-plugins/check_infoblox.php      #
-# History:                                                                 #
-# 20151016  Started Script programming. Check: cpu, mem                    #
-# 20151020  Added check: replication, grid, info, ip, dnsstat, temp        #
-# 20151021  (Back to the Future Day!) Public release                       #
-# 20151030  Added check dhcpstat (by Chris Lewis)                          #
-# 20151104  Bugfix in perfdata of dnsstat check                            #
-# 20190628  Added swap and services check (by Remi Verchere)               #
-############################################################################
+##########################################################################################
+# Script:   check_infoblox                                                               #
+# Author:   Claudio Kuenzler www.claudiokuenzler.com                                     #
+# Purpose:  Monitor Infoblox Appliance                                                   #
+# License:  GPLv2                                                                        #
+# Docs:     www.claudiokuenzler.com/nagios-plugins/check_infoblox.php                    #
+#                                                                                        #
+# License :      GNU General Public Licence (GPL) http://www.gnu.org/                    #
+# This program is free software; you can redistribute it and/or modify it under the      #
+# terms of the GNU General Public License as published by the Free Software Foundation;  #
+# either version 2 of the License, or (at your option) any later version.                #
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY        #
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A        #
+# PARTICULAR PURPOSE.  See the GNU General Public License for more details.              #
+# You should have received a copy of the GNU General Public License along with this      #
+# program; if not, see <https://www.gnu.org/licenses/>.                                  #
+#                                                                                        #
+# Copyright 2015,2021 Claudio Kuenzler                                                   #
+# Copyright 2015 Chris Lewis                                                             #
+# Copyright 2021 Remi Verchere                                                           #
+#                                                                                        #
+# History:                                                                               #
+# 20151016  Started Script programming. Check: cpu, mem                                  #
+# 20151020  Added check: replication, grid, info, ip, dnsstat, temp                      #
+# 20151021  (Back to the Future Day!) Public release                                     #
+# 20151030  Added check dhcpstat (by Chris Lewis)                                        #
+# 20151104  Bugfix in perfdata of dnsstat check                                          #
+# 20210129  Added swap and services check (by Remi Verchere)                             #
+##########################################################################################
 # Variable Declaration
 STATE_OK=0              # define the exit code if status is OK
 STATE_WARNING=1         # define the exit code if status is Warning
@@ -23,7 +38,7 @@ export PATH=$PATH:/usr/local/bin:/usr/bin:/bin # Set path
 # Functions
 help() {
 echo -ne "
-check_infoblox (c) 2015-$(date +%Y) Claudio Kuenzler (published under GPLv2 licence)
+check_infoblox (c) 2015-$(date +%Y) Claudio Kuenzler and contributors (published under GPLv2 licence)
 
 Usage: ./check_infoblox -H host -v 2c -C community -t type [-a argument] [-w warning] [-c critical]
 
@@ -239,6 +254,11 @@ replication) # Check the replication between Infoblox master/slave appliances
     echo "REPLICATION UNKNOWN - This system (SN: ${systemsn}) is a passive h-a member. Cannot verify replication. Try with HA IP address?"
     if [[ -n $ignoreunknown ]]; then exit ${STATE_OK}; else exit ${STATE_UNKNOWN}; fi
   fi
+;;
+
+grid) # Old ha status check was named grid
+  echo "GRID UNKNOWN - grid check type has been renamed to 'ha'"
+  exit ${STATE_UNKNOWN}
 ;;
 
 ha) # Check ha status
